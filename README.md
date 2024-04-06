@@ -19,10 +19,3 @@ Para executar este projeto, você precisará ter instalado em sua máquina:
 
 - Python 3.8 ou superior
 - Bibliotecas Python listadas em `requirements.txt`
-
-### Instalação
-
-1. Clone o repositório:
-
-```bash
-git clone https://github.com/seuusuario/projeto-po235.git
