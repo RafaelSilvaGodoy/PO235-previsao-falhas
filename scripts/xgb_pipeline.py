@@ -133,7 +133,7 @@ class XGBPipeline:
         file_path = f"./models/xgb_pipeline_{time}.pkl".replace(" ","_").replace(":","_")
         try:
             with open(file_path, 'wb') as file:
-                pickle.dump(self, file)
+                pickle.dump(self.evaluation, file)
                 print(f"ModelPipeline saved to {file_path}")
         except:
             print("An error occured and the model couldn't be saved!")
