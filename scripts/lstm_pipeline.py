@@ -2,16 +2,18 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 
 from glob import glob
 from json import dumps
 from datetime import datetime
+from keras import backend as k
 
 #to split the train set in train and val sets using the id
 from sklearn.model_selection import GroupShuffleSplit		
 
 from sklearn.preprocessing import StandardScaler 		#to normalize data
-from sklearn.metrics import mean_absolute_percentage_error      #to evaluate the results
+from sklearn.metrics import mean_absolute_error                 #to evaluate the results
 
 #for deep learning
 from keras.models import Sequential
@@ -35,7 +37,7 @@ class LSTMPipeline:
         model.add(LSTM(units=150,return_sequences=False))
         model.add(Dropout(0.1))
         model.add(Dense(units=1, activation='relu'))
-        model.compile(loss="mape", optimizer="adam", metrics=['mae'])
+        model.compile(loss=self.smape, optimizer="adam", metrics=['mae'])
         self.model = model
         self.is_trained = False
        
@@ -119,6 +121,15 @@ class LSTMPipeline:
         self.df_train = df_train
         self.df_test  = df_test
         print("ETL completed!")
+    
+    # training loss function
+    def smape(self, y_true, y_pred):
+        epsilon=1e-8
+        y_true = tf.cast(y_true, tf.float32)
+        numerator = abs(y_pred - y_true)
+        denominator = (abs(y_true) + abs(y_pred)) / 2.0 + epsilon
+        smape_value = k.mean(numerator / denominator) * 100
+        return smape_value
         
     def train(self, x_train, y_train, x_val, y_val):
     	if self.is_trained:
@@ -137,7 +148,9 @@ class LSTMPipeline:
             return self.model.predict(x_test, verbose=0)        
         
     def report(self, y_true, y_pred):
-        return mean_absolute_percentage_error(y_true, y_pred)
+        y_pred = y_pred[y_true<=30]
+        y_true = y_true[y_true<=30]
+        return mean_absolute_error(y_true, y_pred)
         
     def model_validation(self, fold_path, looking_back):
         for repeat in fold_path:
@@ -176,10 +189,10 @@ class LSTMPipeline:
                 y_pred = self.predict(x_test)
         	
         	# test evaluation
-                mape = self.report(y_test, y_pred)
-                print(mape)
+                mae = self.report(y_test, y_pred[:,0])
+                print(mae)
                 
-                self.results.append(mape)
+                self.results.append(mae)
  
         
     def save(self):
@@ -187,14 +200,14 @@ class LSTMPipeline:
         file_path = f"./models/lstm_pipeline_{time}.pkl".replace(" ","_").replace(":","_")
         try:
             with open(file_path, 'wb') as file:
-                pickle.dump(self, file)
+                pickle.dump(self.results, file)
                 print(f"ModelPipeline saved to {file_path}")
         except:
             print("An error occured and the model couldn't be saved!")
             
 if __name__ == "__main__":
     # observation window
-    looking_back = 25
+    looking_back = 5
     # fold with the 10 x 10-fold with different seeds
     fold_path = glob(f'./dataset/split_folders/*')
     
