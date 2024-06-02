@@ -132,7 +132,7 @@ if __name__ == "__main__":
     with open(file_path, 'rb') as file:
         lstm = pickle.load(file)
 
-    file_path = './models/exponential_pipeline_2024-06-01_15_08_09.pkl'
+    file_path = './models/exponential_pipeline_2024-06-01_18_05_02.pkl'
     with open(file_path, 'rb') as file:
         expd = pickle.load(file) 
 
@@ -145,12 +145,12 @@ if __name__ == "__main__":
 
     pdf.print_chapter(lstm, 'lstm_pipeline_2024-05-31_01_32_33')
 
-    pdf.print_chapter(expd, 'exponential_pipeline_2024-06-01_15_08_09')
+    pdf.print_chapter(expd, 'exponential_pipeline_2024-06-01_18_05_02')
 
     pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
 
-    pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_15_08_09', 'xgb_pipeline_2024-05-30_15_37_22')
+    pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
 
-    pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_15_08_09')
+    pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
 
     pdf.output('Validation_Report.pdf', 'F')
