@@ -74,7 +74,7 @@ class ExponentialPipeline:
                 df_test  = self.label_RUL(df_test)
         
                 # drop the constants features and the settings
-                select_features = ['id','time_cycles','s_9','s_11','s_12','s_14','RUL']
+                select_features = ['id','time_cycles','s_3','s_2','s_17','s_21','s_13','s_8','s_7','s_15','s_20','s_9','s_11','s_12','s_14','RUL']
                 df_train = df_train[select_features]       		
                 df_test = df_test[select_features]  
         
@@ -82,7 +82,7 @@ class ExponentialPipeline:
                 df_train, df_test = self.normalize_data(df_train, df_test)   
         	
                 # pca
-                feats = ['s_9','s_11','s_12','s_14']
+                feats = ['s_3','s_2','s_17','s_21','s_13','s_8','s_7','s_15','s_20','s_9','s_11','s_12','s_14']
                 pca_train = self.pca_data(df_train.reset_index(drop=True), feats)
                 pca_test  = self.pca_data(df_test.reset_index(drop=True), feats)
 
