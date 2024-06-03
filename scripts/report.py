@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import pickle
+import os
 from fpdf import FPDF
 
 class PDF(FPDF):
@@ -120,37 +121,70 @@ def bayesian_correlated_t_test(differences, rho):
     return stats.t(dof, loc=mean_diff, scale=scale)   
 
 if __name__ == "__main__":
-
-    
-    file_path = './models/xgb_pipeline_2024-05-30_15_37_22.pkl'
-
-    with open(file_path, 'rb') as file:
-        xgb = pickle.load(file)
-
-    file_path = './models/lstm_pipeline_2024-05-31_01_32_33.pkl'
-
-    with open(file_path, 'rb') as file:
-        lstm = pickle.load(file)
-
-    file_path = './models/exponential_pipeline_2024-06-01_18_05_02.pkl'
-    with open(file_path, 'rb') as file:
-        expd = pickle.load(file) 
-
+    filesname = os.listdir('./models/')
+    model_load = []
+    for name in filesname:
+        file_path = './models/'+name
+        
+        with open(file_path, 'rb') as file:
+            model_load.append(pickle.load(file))
+     
     pdf = PDF()
-
+    
     title = 'Validation Report'
     pdf.set_title('Validation Report')
+    
+    for i in range(len(model_load)):
+        pdf.print_chapter(model_load[i], filesname[i].split('pkl')[0])
+        
+    models = [(a, b) for idx, a in enumerate(model_load) for b in model_load[idx + 1:]]
+    models_name = [(a, b) for idx, a in enumerate(filesname) for b in filesname[idx + 1:]]
+    
+    for i in range(len(models)):
+        pdf.add_chart(models[i][0], models[i][1], models_name[i][0].split('.pkl')[0], models_name[i][1].split('.pkl')[0])
+    
+    #pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
 
-    pdf.print_chapter(xgb, 'xgb_pipeline_2024-05-30_15_37_22')
+    #pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
 
-    pdf.print_chapter(lstm, 'lstm_pipeline_2024-05-31_01_32_33')
+    #pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
 
-    pdf.print_chapter(expd, 'exponential_pipeline_2024-06-01_18_05_02')
+    #pdf.output('Validation_Report.pdf', 'F')
+    
+    #for i in range(len(models)):
+    #    print(models[i][0].split('.pkl')[0], models[i][1].split('.pkl')[0])
+    #print(models[0][0].split('.pkl')[0])
+    #print("All possible pairs : " + str(models))
+        
+    #file_path = './models/xgb_pipeline_2024-05-30_15_37_22.pkl'
 
-    pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
+    #with open(file_path, 'rb') as file:
+    #    xgb = pickle.load(file)
 
-    pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
+    #file_path = './models/lstm_pipeline_2024-05-31_01_32_33.pkl'
 
-    pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
+    #with open(file_path, 'rb') as file:
+    #    lstm = pickle.load(file)
+
+    #file_path = './models/exponential_pipeline_2024-06-01_18_05_02.pkl'
+    #with open(file_path, 'rb') as file:
+    #    expd = pickle.load(file) 
+
+    #pdf = PDF()
+
+    #title = 'Validation Report'
+    #pdf.set_title('Validation Report')
+
+    #pdf.print_chapter(xgb, 'xgb_pipeline_2024-05-30_15_37_22')
+
+    #pdf.print_chapter(lstm, 'lstm_pipeline_2024-05-31_01_32_33')
+
+    #pdf.print_chapter(expd, 'exponential_pipeline_2024-06-01_18_05_02')
+
+    #pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
+
+    #pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
+
+    #pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
 
     pdf.output('Validation_Report.pdf', 'F')
