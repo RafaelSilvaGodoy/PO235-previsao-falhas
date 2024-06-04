@@ -1,7 +1,6 @@
 """
    This code save the lstm model
 """
-
 import os
 import pickle
 import numpy as np
@@ -23,6 +22,28 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Activation, Dropout
 from keras.callbacks import History, EarlyStopping
 
+
+# training loss function
+class smape(tf.keras.losses.Loss):
+    def __init__(self, epsilon=1e-8, name="smape", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.epsilon = epsilon
+        
+    def call(self,y_true,y_pred):
+        y_true = tf.cast(y_true, tf.float32)
+        numerator = abs(y_pred - y_true)
+        denominator = (abs(y_true) + abs(y_pred)) / 2.0 + self.epsilon
+        smape_value = k.mean(numerator / denominator) * 100
+        return smape_value
+        
+    def get_config(self):
+        config = {
+            'epsilon': self.epsilon
+        }
+        base_config = super().get_config()
+        return {**base_config, **config}
+        
+# LSTM model
 class LSTMModel:
      
     def __init__(self, model=None):
@@ -38,7 +59,7 @@ class LSTMModel:
         model.add(LSTM(units=50,return_sequences=False))
         model.add(Dropout(0.1))
         model.add(Dense(units=1, activation='relu'))
-        model.compile(loss=self.smape, optimizer="adam", metrics=['mae'])
+        model.compile(loss=smape(), optimizer="adam", metrics=['mae'])
         self.model = model
        
     # data labeling - generate column RUL
@@ -111,14 +132,6 @@ class LSTMModel:
         self.df_train = df_train
         print("ETL completed!")
     
-    # training loss function
-    def smape(self, y_true, y_pred):
-        epsilon=1e-8
-        y_true = tf.cast(y_true, tf.float32)
-        numerator = abs(y_pred - y_true)
-        denominator = (abs(y_true) + abs(y_pred)) / 2.0 + epsilon
-        smape_value = k.mean(numerator / denominator) * 100
-        return smape_value
         
     def train(self, x_train, y_train, x_val, y_val):
     	if self.is_trained:
@@ -128,6 +141,13 @@ class LSTMModel:
     	            callbacks = [History(), EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')])
     	self.is_trained = True
     	print("Train completed!")
+    	
+    def get_config(self):
+        base_config = super().get_config()
+        config = {
+            "sublayer": keras.saving.serialize_keras_object(self.sublayer),
+        }
+        return {**base_config, **config}
     	
     def model_train(self, train_path, looking_back):
         try:
@@ -156,7 +176,7 @@ class LSTMModel:
         # train model
         self.train(x_train, y_train, x_val, y_val)
         
-    def save_model(self):
+    def save(self):
         if not self.is_trained:
             raise Exception("Model is not trained yet!")
         else:
@@ -164,8 +184,8 @@ class LSTMModel:
             file_path = f"./trained_models/lstm_pipeline_v2_{time}.pkl".replace(" ","_").replace(":","_")
             try:
                 with open(file_path, 'wb') as file:
-                    pickle.dump(self.model, file)
-                    print(f"Model saved to {file_path}")
+                    pickle.dump(self, file)
+                    print(f"ModelPipeline saved to {file_path}")
             except:
                 print("An error occured and the model couldn't be saved!")
                 
@@ -177,5 +197,5 @@ if __name__ == "__main__":
     
     lstm_model = LSTMModel()
     lstm_model.model_train(file_path, looking_back)
-    lstm_model.save_model()
+    lstm_model.save()
     
