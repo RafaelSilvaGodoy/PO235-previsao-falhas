@@ -47,7 +47,7 @@ class PDF(FPDF):
 
         self.set_font('Times', '', 12)
 
-        self.multi_cell(0, 5, f"Metric: MAE if y_true <= 30, else not computed")
+        self.multi_cell(0, 5, f"Metric: MAE if y_true <= 30 or if y_pred <=30, else not computed")
         self.ln()   
 
         self.multi_cell(0, 5, f"Mean: {round(np.mean(model_evaluation),3)}")
@@ -142,49 +142,5 @@ if __name__ == "__main__":
     
     for i in range(len(models)):
         pdf.add_chart(models[i][0], models[i][1], models_name[i][0].split('.pkl')[0], models_name[i][1].split('.pkl')[0])
-    
-    #pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
-
-    #pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
-
-    #pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
-
-    #pdf.output('Validation_Report.pdf', 'F')
-    
-    #for i in range(len(models)):
-    #    print(models[i][0].split('.pkl')[0], models[i][1].split('.pkl')[0])
-    #print(models[0][0].split('.pkl')[0])
-    #print("All possible pairs : " + str(models))
-        
-    #file_path = './models/xgb_pipeline_2024-05-30_15_37_22.pkl'
-
-    #with open(file_path, 'rb') as file:
-    #    xgb = pickle.load(file)
-
-    #file_path = './models/lstm_pipeline_2024-05-31_01_32_33.pkl'
-
-    #with open(file_path, 'rb') as file:
-    #    lstm = pickle.load(file)
-
-    #file_path = './models/exponential_pipeline_2024-06-01_18_05_02.pkl'
-    #with open(file_path, 'rb') as file:
-    #    expd = pickle.load(file) 
-
-    #pdf = PDF()
-
-    #title = 'Validation Report'
-    #pdf.set_title('Validation Report')
-
-    #pdf.print_chapter(xgb, 'xgb_pipeline_2024-05-30_15_37_22')
-
-    #pdf.print_chapter(lstm, 'lstm_pipeline_2024-05-31_01_32_33')
-
-    #pdf.print_chapter(expd, 'exponential_pipeline_2024-06-01_18_05_02')
-
-    #pdf.add_chart(lstm, xgb, 'lstm_pipeline_2024-05-31_01_32_33', 'xgb_pipeline_2024-05-30_15_37_22')
-
-    #pdf.add_chart(expd, xgb, 'exponential_pipeline_2024-06-01_18_05_02', 'xgb_pipeline_2024-05-30_15_37_22')
-
-    #pdf.add_chart(lstm, expd, 'lstm_pipeline_2024-05-31_01_32_33', 'exponential_pipeline_2024-06-01_18_05_02')
 
     pdf.output('Validation_Report.pdf', 'F')
