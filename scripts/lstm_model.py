@@ -51,12 +51,15 @@ class LSTMModel:
         self.model = None
         self.is_trained = False
         self.df_train = None
+        # for production
+        self.scaler = None
+        self.features = None
         
     def build_model(self, window, sz):
         model = Sequential()
-        model.add(LSTM(units=50, return_sequences=True, input_shape=(window, sz)))
+        model.add(LSTM(units=150, return_sequences=True, input_shape=(window, sz)))
         model.add(Dropout(0.2))
-        model.add(LSTM(units=50,return_sequences=False))
+        model.add(LSTM(units=150,return_sequences=False))
         model.add(Dropout(0.1))
         model.add(Dense(units=1, activation='relu'))
         model.compile(loss=smape(), optimizer="adam", metrics=['mae'])
@@ -82,6 +85,8 @@ class LSTMModel:
                                      index=df_train.index)
         join_df = df_train[df_train.columns.difference(cols_normalize)].join(norm_train_df)
         train_df = join_df.reindex(columns = df_train.columns)
+        
+        self.scaler = scaler # saving the scaler for production
         return train_df
     
     # function to reshape the data to lstm
@@ -142,12 +147,6 @@ class LSTMModel:
     	self.is_trained = True
     	print("Train completed!")
     	
-    def get_config(self):
-        base_config = super().get_config()
-        config = {
-            "sublayer": keras.saving.serialize_keras_object(self.sublayer),
-        }
-        return {**base_config, **config}
     	
     def model_train(self, train_path, looking_back):
         try:
@@ -155,7 +154,8 @@ class LSTMModel:
         except:
             print("An error occured during ETL!")
             
-        feature_columns = self.df_train.columns.tolist()
+        feature_columns = self.df_train.columns.difference(['id','time_cycles','RUL']).tolist()
+        self.features = feature_columns
         
         # generate the validation set based on the id
         gss = GroupShuffleSplit(n_splits=1, train_size=.9, random_state=42)
