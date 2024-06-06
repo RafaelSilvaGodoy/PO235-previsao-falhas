@@ -43,17 +43,16 @@ def etl(df_path, model, ids):
     
     
 if __name__ == "__main__":
-    model_path = './trained_models/lstm_pipeline_v2_2024-06-05_09_00_10.pkl'
+    model_path = './trained_models/lstm_pipeline_w5_v2_2024-06-06_13_53_12.pkl'
     test_path  = './dataset/CMaps/test_FD001.txt'
     
     with open(model_path, 'rb') as file:
         lstm_model = pickle.load(file)
     
     ids = [31, 34, 35, 36, 66, 68, 76, 81, 82, 100]
-    looking_back = 5
     
     df_test = etl(test_path, lstm_model, ids)
     
-    x_test =np.concatenate(list(list(lstm_model.get_window(df_test[df_test['id']==unit], looking_back, lstm_model.features)) for unit in df_test['id'].unique()))
+    x_test =np.concatenate(list(list(lstm_model.get_window(df_test[df_test['id']==unit], lstm_model.window, lstm_model.features)) for unit in df_test['id'].unique()))
     y_pred = lstm_model.model.predict(x_test)
     print(y_pred)

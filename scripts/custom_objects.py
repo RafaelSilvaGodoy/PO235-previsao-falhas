@@ -1,6 +1,3 @@
-"""
-   This code save the lstm model
-"""
 import os
 import pickle
 import numpy as np
@@ -21,6 +18,7 @@ from sklearn.preprocessing import StandardScaler 		#to normalize data
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Activation, Dropout
 from keras.callbacks import History, EarlyStopping
+
 
 # training loss function
 class smape(tf.keras.losses.Loss):
@@ -53,12 +51,13 @@ class LSTMModel:
         # for production
         self.scaler = None
         self.features = None
+        self.window = None
         
     def build_model(self, window, sz):
         model = Sequential()
-        model.add(LSTM(units=150, return_sequences=True, input_shape=(window, sz)))
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(window, sz)))
         model.add(Dropout(0.2))
-        model.add(LSTM(units=150,return_sequences=False))
+        model.add(LSTM(units=50,return_sequences=False))
         model.add(Dropout(0.1))
         model.add(Dense(units=1, activation='relu'))
         model.compile(loss=smape(), optimizer="adam", metrics=['mae'])
@@ -137,12 +136,11 @@ class LSTMModel:
         print("ETL completed!")
     
         
-    def train(self, x_train, y_train, x_val, y_val):
+    def train(self, x_train, y_train):
     	if self.is_trained:
     	    raise Exception("Model should not be a trained model!")
     	else:
-            self.model.fit(x_train, y_train, epochs=100, batch_size=32, validation_data=(x_val, y_val), verbose=1, 
-    	            callbacks = [History(), EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')])
+    	    self.model.fit(x_train, y_train, epochs=100, batch_size=32, verbose=1)
     	self.is_trained = True
     	print("Train completed!")
     	
@@ -155,32 +153,25 @@ class LSTMModel:
             
         feature_columns = self.df_train.columns.difference(['id','time_cycles','RUL']).tolist()
         self.features = feature_columns
+        self.window   = looking_back
         
-        # generate the validation set based on the id
-        gss = GroupShuffleSplit(n_splits=1, train_size=.9, random_state=42)
-        for i, (train_index, val_index) in enumerate(gss.split(self.df_train, self.df_train['RUL'], self.df_train['id'])):
-            df_val    = self.df_train.iloc[val_index]
-            new_train = self.df_train.iloc[train_index]
-            
-        x_train=np.concatenate(list(list(self.get_window(new_train[new_train['id']==unit], looking_back, feature_columns)) for unit in new_train['id'].unique()))
-        x_val  =np.concatenate(list(list(self.get_window(df_val[df_val['id']==unit], looking_back, feature_columns)) for unit in df_val['id'].unique()))
-
-        #generate target of train
-        y_train = np.concatenate(list(list(self.gen_target(new_train[new_train['id']==unit], looking_back, "RUL")) for unit in new_train['id'].unique()))
-        y_val   = np.concatenate(list(list(self.gen_target(df_val[df_val['id']==unit], looking_back, "RUL")) for unit in df_val['id'].unique()))
+        x_train=np.concatenate(list(list(self.get_window(self.df_train[self.df_train['id']==unit], looking_back, feature_columns)) 
+                               for unit in self.df_train['id'].unique()))
+        y_train=np.concatenate(list(list(self.gen_target(self.df_train[self.df_train['id']==unit], looking_back, "RUL")) 
+                               for unit in self.df_train['id'].unique()))
         
         # create model
         self.build_model(looking_back, len(feature_columns))
                 
         # train model
-        self.train(x_train, y_train, x_val, y_val)
+        self.train(x_train, y_train)
         
     def save(self):
         if not self.is_trained:
             raise Exception("Model is not trained yet!")
         else:
             time = str(datetime.now())[:19]
-            file_path = f"./trained_models/lstm_pipeline_v2_{time}.pkl".replace(" ","_").replace(":","_")
+            file_path = f"./trained_models/lstm_pipeline_w5_v2_{time}.pkl".replace(" ","_").replace(":","_")
             try:
                 with open(file_path, 'wb') as file:
                     pickle.dump(self, file)

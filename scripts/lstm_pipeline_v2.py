@@ -206,7 +206,7 @@ class LSTMPipeline:
     # save the results    
     def save(self):
         time = str(datetime.now())[:19]
-        file_path = f"./models/lstm_pipeline_v2_{time}.pkl".replace(" ","_").replace(":","_")
+        file_path = f"./models/lstm_pipeline_w5_v2_{time}.pkl".replace(" ","_").replace(":","_")
         try:
             with open(file_path, 'wb') as file:
                 pickle.dump(self.results, file)
@@ -216,7 +216,7 @@ class LSTMPipeline:
             
 if __name__ == "__main__":
     # observation window
-    looking_back = 10
+    looking_back = 5
     # fold with the 10 x 10-fold with different seeds
     fold_path = glob(f'./dataset/split_folders/*')
     
