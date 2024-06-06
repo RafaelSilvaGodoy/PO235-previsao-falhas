@@ -124,8 +124,10 @@ class ExponentialPipeline:
                 return exp_parameters_df
 
         def report(self, y_true, y_pred):
-                y_pred = y_pred[y_true<=30]
-                y_true = y_true[y_true<=30]
+                inputs = (y_pred <= 30, y_true <= 30)
+                idx = np.any(inputs, axis = 0)
+                y_pred = y_pred[idx]
+                y_true = y_true[idx]
                 return mean_absolute_error(y_true, y_pred)
 
         def predict(self, x_test, exp_parameters_df):
