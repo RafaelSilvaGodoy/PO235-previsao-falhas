@@ -115,13 +115,8 @@ class LSTMModel:
     
     # Data ETL
     def etl(self, train_path):
-        index_names = ['id', 'time_cycles']
-        setting_names = ['setting_1', 'setting_2', 'setting_3']
-        sensor_names = ['s_{}'.format(i+1) for i in range(0,21)]
-        col_names = index_names + setting_names + sensor_names
-        
         try:
-            df_train = pd.read_csv(train_path,sep='\s+',header=None,index_col=False,names=col_names)
+            df_train = pd.read_csv(train_path,sep=',')
         except:
             print("No train file was found or it's structure is not as expected")
         
@@ -143,9 +138,6 @@ class LSTMModel:
     	if self.is_trained:
     	    raise Exception("Model should not be a trained model!")
     	else:
-            #self.model.fit(x_train, y_train, epochs=100, batch_size=32, validation_data=(x_val, y_val), verbose=1, 
-    	            #callbacks = [History(), EarlyStopping(monitor='val_loss', min_delta=0.5, patience=10, verbose=0, mode='auto',
-    	            #restore_best_weights = True)])
     	    self.model.fit(x_train, y_train, epochs=100, batch_size=32, verbose=1)
     	self.is_trained = True
     	print("Train completed!")
@@ -160,20 +152,7 @@ class LSTMModel:
         feature_columns = self.df_train.columns.difference(['id','time_cycles','RUL']).tolist()
         self.features = feature_columns
         self.window   = looking_back
-        """
-        # generate the validation set based on the id
-        gss = GroupShuffleSplit(n_splits=1, train_size=.9, random_state=42)
-        for i, (train_index, val_index) in enumerate(gss.split(self.df_train, self.df_train['RUL'], self.df_train['id'])):
-            df_val    = self.df_train.iloc[val_index]
-            new_train = self.df_train.iloc[train_index]
-            
-        x_train=np.concatenate(list(list(self.get_window(new_train[new_train['id']==unit], looking_back, feature_columns)) for unit in new_train['id'].unique()))
-        x_val  =np.concatenate(list(list(self.get_window(df_val[df_val['id']==unit], looking_back, feature_columns)) for unit in df_val['id'].unique()))
 
-        #generate target of train
-        y_train = np.concatenate(list(list(self.gen_target(new_train[new_train['id']==unit], looking_back, "RUL")) for unit in new_train['id'].unique()))
-        y_val   = np.concatenate(list(list(self.gen_target(df_val[df_val['id']==unit], looking_back, "RUL")) for unit in df_val['id'].unique()))
-        """
         x_train=np.concatenate(list(list(self.get_window(self.df_train[self.df_train['id']==unit], looking_back, feature_columns)) 
                                for unit in self.df_train['id'].unique()))
         y_train=np.concatenate(list(list(self.gen_target(self.df_train[self.df_train['id']==unit], looking_back, "RUL")) 
@@ -203,7 +182,7 @@ if __name__ == "__main__":
     # observation window
     looking_back = 5
     # fold with the 10 x 10-fold with different seeds
-    file_path = './dataset/CMaps/train_FD001.txt'
+    file_path = './dataset/train_set.csv'
     
     lstm_model = LSTMModel()
     lstm_model.model_train(file_path, looking_back)
