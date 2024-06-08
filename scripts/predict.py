@@ -16,18 +16,12 @@ def normalize_data(df, model):
     return df
         
 # Data ETL
-def etl(df_path, model, ids):
-    index_names = ['id', 'time_cycles']
-    setting_names = ['setting_1', 'setting_2', 'setting_3']
-    sensor_names = ['s_{}'.format(i+1) for i in range(0,21)]
-    col_names = index_names + setting_names + sensor_names
-        
+def etl(df_path, model):      
     try:
-        df = pd.read_csv(df_path,sep='\s+',header=None,index_col=False,names=col_names)
+        df = pd.read_csv(df_path,sep=',')
     except:
         print("No file was found or it's structure is not as expected")
         
-    df = df[df['id'].isin(ids)]
     df = df.sort_values(['id','time_cycles'])
     
     # drop the constants features and the settings based on the EDA
@@ -43,15 +37,13 @@ def etl(df_path, model, ids):
     
     
 if __name__ == "__main__":
-    model_path = './trained_models/lstm_pipeline_w5_v2_2024-06-06_13_53_12.pkl'
-    test_path  = './dataset/CMaps/test_FD001.txt'
+    model_path = './trained_models/lstm_pipeline_w5_v2_2024-06-08_15_56_34.pkl'
+    test_path  = './dataset/test_set.csv'
     
     with open(model_path, 'rb') as file:
         lstm_model = pickle.load(file)
     
-    ids = [31, 34, 35, 36, 66, 68, 76, 81, 82, 100]
-    
-    df_test = etl(test_path, lstm_model, ids)
+    df_test = etl(test_path, lstm_model)
     
     x_test =np.concatenate(list(list(lstm_model.get_window(df_test[df_test['id']==unit], lstm_model.window, lstm_model.features)) for unit in df_test['id'].unique()))
     y_pred = lstm_model.model.predict(x_test)
