@@ -1,6 +1,3 @@
-"""
-   This code save the lstm model
-"""
 import os
 import pickle
 import numpy as np
@@ -115,8 +112,13 @@ class LSTMModel:
     
     # Data ETL
     def etl(self, train_path):
+        index_names = ['id', 'time_cycles']
+        setting_names = ['setting_1', 'setting_2', 'setting_3']
+        sensor_names = ['s_{}'.format(i+1) for i in range(0,21)]
+        col_names = index_names + setting_names + sensor_names
+        
         try:
-            df_train = pd.read_csv(train_path,sep=',')
+            df_train = pd.read_csv(train_path,sep='\s+',header=None,index_col=False,names=col_names)
         except:
             print("No train file was found or it's structure is not as expected")
         
@@ -152,7 +154,7 @@ class LSTMModel:
         feature_columns = self.df_train.columns.difference(['id','time_cycles','RUL']).tolist()
         self.features = feature_columns
         self.window   = looking_back
-
+        
         x_train=np.concatenate(list(list(self.get_window(self.df_train[self.df_train['id']==unit], looking_back, feature_columns)) 
                                for unit in self.df_train['id'].unique()))
         y_train=np.concatenate(list(list(self.gen_target(self.df_train[self.df_train['id']==unit], looking_back, "RUL")) 
@@ -162,7 +164,6 @@ class LSTMModel:
         self.build_model(looking_back, len(feature_columns))
                 
         # train model
-        #self.train(x_train, y_train, x_val, y_val)
         self.train(x_train, y_train)
         
     def save(self):
@@ -178,13 +179,3 @@ class LSTMModel:
             except:
                 print("An error occured and the model couldn't be saved!")
                 
-if __name__ == "__main__":
-    # observation window
-    looking_back = 5
-    # fold with the 10 x 10-fold with different seeds
-    file_path = './dataset/train_set.csv'
-    
-    lstm_model = LSTMModel()
-    lstm_model.model_train(file_path, looking_back)
-    lstm_model.save()
-    

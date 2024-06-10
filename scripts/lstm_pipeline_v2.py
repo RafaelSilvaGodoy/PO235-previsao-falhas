@@ -118,7 +118,6 @@ class LSTMPipeline:
         df_train.drop(columns=list_columns_droped, inplace=True)
         df_test.drop(columns=list_columns_droped, inplace=True)
         
-        
         # data normalization
         df_train, df_test = self.normalize_data(df_train, df_test)
         
@@ -172,7 +171,7 @@ class LSTMPipeline:
                 except:
                    print("An error occured during ETL!")
                    
-                feature_columns = self.df_train.columns.tolist()
+                feature_columns = self.df_train.columns.difference(['id','time_cycles','RUL']).tolist()
                 
                 # generate the validation set based on the id
                 gss = GroupShuffleSplit(n_splits=1, train_size=.8, random_state=42)
@@ -207,7 +206,7 @@ class LSTMPipeline:
     # save the results    
     def save(self):
         time = str(datetime.now())[:19]
-        file_path = f"./models/lstm_pipeline_v2_{time}.pkl".replace(" ","_").replace(":","_")
+        file_path = f"./models/lstm_pipeline_w5_v2_{time}.pkl".replace(" ","_").replace(":","_")
         try:
             with open(file_path, 'wb') as file:
                 pickle.dump(self.results, file)
