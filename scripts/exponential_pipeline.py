@@ -6,10 +6,12 @@ import pickle
 from datetime import datetime
 from scipy import optimize
 from glob import glob
-from sklearn.preprocessing import StandardScaler #to normalize data
+# Importing required modules from scikit-learn for normalization
+from sklearn.preprocessing import StandardScaler 
 from sklearn.metrics import mean_absolute_error
 from sklearn.decomposition import PCA
 
+# Exponential Degradation class
 class ExponentialPipeline:
 
         def __init__(self, model=None):
@@ -20,8 +22,14 @@ class ExponentialPipeline:
                 self.results = []
                 self.threshold = None
 
-        # data labeling - generate column RUL
         def label_RUL(self, df):
+                """
+		Adds a Remaining Useful Life (RUL) column to the dataframe.
+		Args:
+		df: DataFrame - The input dataframe.
+		Returns:
+		DataFrame - The dataframe with the added RUL column.
+		"""
                 rul = pd.DataFrame(df.groupby('id')['time_cycles'].max()).reset_index()
                 rul.columns = ['id', 'max']
                 df = df.merge(rul, on=['id'], how='left')
@@ -29,8 +37,16 @@ class ExponentialPipeline:
                 df.drop('max', axis=1, inplace=True)
                 return df
 
-        # Standard scalar normalization
+
         def normalize_data(self, df_train, df_test):
+		"""
+		Normalizes the training data using StandardScaler.
+		Args:
+		df_train: DataFrame - The training dataframe.
+		df_test: DataFrame - The test dataframe.
+		Returns:
+		DataFrame - The normalized training dataframe.
+		"""
                 cols_normalize = df_train.columns.difference(['id','time_cycles','RUL'])
                 scaler = StandardScaler()
                 # train data normalization
@@ -46,8 +62,20 @@ class ExponentialPipeline:
                 test_df = join_dfT.reindex(columns = df_test.columns)
                 return train_df, test_df
 
-        # principal component analysis
         def pca_data(self, df, feats):
+		"""
+		Performs Principal Component Analysis (PCA) on the given dataframe and returns a dataframe with the top 3 principal components.
+
+		This function reduces the dimensionality of the input features using PCA, retaining the top 3 principal components. 
+		It returns a new dataframe that includes these principal components along with the original 'RUL', 'id', and 'time_cycles' columns.
+
+		Args:
+		df (pd.DataFrame): The input dataframe containing the data to be transformed.
+		feats (list of str): The list of feature column names to be included in the PCA transformation.
+
+		Returns:
+		pd.DataFrame: A new dataframe containing the top 3 principal components along with the 'RUL', 'id', and 'time_cycles' columns.
+	    	"""
                 pca = PCA(n_components=3)
                 pca_data = pca.fit_transform(df[feats])
                 pca_df = pd.DataFrame(pca_data, columns = ['pc1', 'pc2', 'pc3'])
@@ -59,6 +87,12 @@ class ExponentialPipeline:
 
         # Data ETL
         def etl(self, train_path, test_path):
+		"""
+		Extract, Transform, Load (ETL) process for the data.
+		Args:
+		train_path: str - The path to the training data file.
+		test_path: str - The path to the test data file.
+		"""
                 try:
                         df_train = pd.read_csv(train_path, sep=' ', index_col=0)
                 except:
@@ -81,7 +115,7 @@ class ExponentialPipeline:
                 # data normalization
                 df_train, df_test = self.normalize_data(df_train, df_test)   
         	
-                # pca
+                # pca to fuse the features
                 feats = ['s_3','s_2','s_17','s_21','s_13','s_8','s_7','s_15','s_20','s_9','s_11','s_12','s_14']
                 pca_train = self.pca_data(df_train.reset_index(drop=True), feats)
                 pca_test  = self.pca_data(df_test.reset_index(drop=True), feats)
@@ -92,6 +126,16 @@ class ExponentialPipeline:
 
 
         def exp_degradation(self, parameters, cycle):
+		"""
+		Calculates the exponential degradation function.
+
+		Args:
+		parameters (list of float): List containing the parameters [phi, theta, beta].
+		cycle (int or float): The cycle number.
+
+		Returns:
+		float: The calculated degradation value.
+		"""
                 phi = parameters[0]
                 theta = parameters[1]
                 beta = parameters[2]
@@ -100,10 +144,31 @@ class ExponentialPipeline:
                 return ht
 
         def residuals (self, parameters, data, y_observed, func):
+		"""
+		Calculates the residuals between observed and predicted values.
+
+		Args:
+		parameters (list of float): List containing the parameters to be optimized.
+		data (array-like): The input data for the degradation function.
+		y_observed (array-like): The observed data.
+		func (function): The degradation function to be used for prediction.
+
+		Returns:
+		array: The residuals between observed and predicted values.
+		"""
                 return func(parameters, data) - y_observed
 
 
         def exp_parameters(self, df):
+		"""
+		Estimates the parameters of the exponential degradation model for each unique id in the dataframe.
+
+		Args:
+		df (pd.DataFrame): DataFrame containing the data with columns 'id', 'pc1', and 'time_cycles'.
+
+		Returns:
+		pd.DataFrame: DataFrame containing the estimated parameters 'phi', 'theta', and 'beta' for each id.
+		"""
                 exp_parameters_df = dict(id=list(),phi=list(),theta=list(),beta=list())
                 ids = df['id'].unique()
                 param_0 = [-1, 0.01, 0.01]
@@ -124,6 +189,16 @@ class ExponentialPipeline:
                 return exp_parameters_df
 
         def report(self, y_true, y_pred):
+		"""
+		Reports the Mean Absolute Error (MAE) for instances where the RUL is 30 cycles or less.
+
+		Args:
+		y_true (array-like): The true values.
+		y_pred (array-like): The predicted values.
+
+		Returns:
+		float: The calculated MAE.
+		"""
                 inputs = (y_pred <= 30, y_true <= 30)
                 idx = np.any(inputs, axis = 0)
                 y_pred = y_pred[idx]
@@ -131,6 +206,16 @@ class ExponentialPipeline:
                 return mean_absolute_error(y_true, y_pred)
 
         def predict(self, x_test, exp_parameters_df):
+		"""
+		Predicts the Remaining Useful Life (RUL) using the exponential degradation model.
+
+		Args:
+		x_test (pd.DataFrame): The test data.
+		exp_parameters_df (pd.DataFrame): DataFrame containing the estimated parameters 'phi', 'theta', and 'beta' for each id.
+
+		Returns:
+		list of float: The predicted RUL for each test instance.
+		"""
                 if not self.is_trained:
                         raise Exception("Model is not trained yet!")
                 else:
@@ -165,12 +250,27 @@ class ExponentialPipeline:
                         return y_pred
 
         def train(self):
+		"""
+		Trains the exponential degradation model by estimating the parameters for the training data.
+
+		Returns:
+		pd.DataFrame: DataFrame containing the estimated parameters 'phi', 'theta', and 'beta' for the training data.
+		"""
                 exp_parameters_df = self.exp_parameters(self.df_train)
                 self.threshold =  self.df_train.pc1[self.df_train.RUL == 0].mean()
                 self.is_trained = True
                 return exp_parameters_df
 
         def model_validation(self, fold_path):
+		"""
+		Performs model validation using 10-fold cross-validation.
+
+		Args:
+		fold_path (list of str): List containing the paths to the fold directories.
+
+		Returns:
+		None
+		"""
                  for repeat in fold_path:
                        for i in range(10):
                              train_path = repeat+'/train_'+str(i)+'.csv'
@@ -193,6 +293,9 @@ class ExponentialPipeline:
 
 
         def save(self):
+        	"""
+		Saves the results to a file.
+		"""
                 time = str(datetime.now())[:19]
                 file_path = f"./models/exponential_pipeline_{time}.pkl".replace(" ","_").replace(":","_")
                 try:

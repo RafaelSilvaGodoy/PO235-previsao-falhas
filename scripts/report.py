@@ -6,7 +6,14 @@ import os
 from fpdf import FPDF
 
 class PDF(FPDF):
+    """
+    A class to create a PDF document with model evaluation results and comparison charts.
+    Inherits from FPDF.
+    """
     def header(self):
+        """
+        Creates the header for each page of the PDF.
+        """
         # Arial bold 15
         self.set_font('Arial', 'B', 15)
         # Calculate width of title and position
@@ -24,6 +31,9 @@ class PDF(FPDF):
         self.ln(10)
 
     def footer(self):
+        """
+        Creates the footer for each page of the PDF.
+        """
         # Position at 1.5 cm from bottom
         self.set_y(-15)
         # Arial italic 8
@@ -34,6 +44,12 @@ class PDF(FPDF):
         self.cell(0, 10, 'Page ' + str(self.page_no()), 0, 0, 'C')
 
     def chapter_title(self, model_name):
+        """
+        Adds a title for each chapter in the PDF.
+
+        Args:
+        model_name (str): The name of the model being evaluated.
+        """
         # Arial 12
         self.set_font('Arial', '', 12)
         # Background color
@@ -44,7 +60,12 @@ class PDF(FPDF):
         self.ln(4)
 
     def chapter_body(self, model_evaluation):
+        """
+        Adds the body of the chapter with model evaluation metrics.
 
+        Args:
+        model_evaluation (list): List of model evaluation results.
+        """
         self.set_font('Times', '', 12)
 
         self.multi_cell(0, 5, f"Metric: MAE if y_true <= 30 or if y_pred <=30, else not computed")
@@ -59,11 +80,27 @@ class PDF(FPDF):
         self.set_font('', 'I')
         
     def print_chapter(self, model_evaluation, model_name):
+        """
+        Adds a new chapter to the PDF.
+
+        Args:
+        model_evaluation (list): List of model evaluation results.
+        model_name (str): The name of the model being evaluated.
+        """
         self.add_page()
         self.chapter_title(model_name)
         self.chapter_body(model_evaluation)
 
     def add_chart(self, model1, model2, model1_name, model2_name):
+        """
+        Adds a chart comparing two models to the PDF.
+
+        Args:
+        model1 (list): Evaluation results of the first model.
+        model2 (list): Evaluation results of the second model.
+        model1_name (str): Name of the first model.
+        model2_name (str): Name of the second model.
+        """
         self.add_page()
         self.chapter_title(f'{model1_name} x {model2_name}')
         
@@ -109,6 +146,16 @@ class PDF(FPDF):
         self.ln()
 
 def bayesian_correlated_t_test(differences, rho):
+    """
+    Computes the Bayesian Correlated t-Test.
+
+    Args:
+    differences (array-like): Array of differences between two model evaluations.
+    rho (float): Correlation coefficient.
+
+    Returns:
+    scipy.stats._distn_infrastructure.rv_frozen: A frozen t-distribution object.
+    """
     n = len(differences)
     mean_diff = np.mean(differences)
     std_diff = np.std(differences, ddof=1)

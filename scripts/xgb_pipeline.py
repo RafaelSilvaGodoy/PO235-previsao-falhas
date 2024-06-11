@@ -7,8 +7,24 @@ from sklearn.metrics import mean_absolute_error
 import xgboost as xgb
 
 class XGBPipeline:
+    """
+    A pipeline for data preprocessing, model training, prediction, and evaluation using XGBoost.
+
+    Attributes:
+    model (xgb.XGBRegressor): The XGBoost model used for regression.
+    is_trained (bool): Flag indicating if the model has been trained.
+    df (pd.DataFrame): DataFrame holding the processed data.
+    scaler (StandardScaler): Scaler used for standardizing features.
+    evaluation (list): List to store evaluation results.
+    """
 
     def __init__(self, model=None):
+        """
+        Initializes the XGBPipeline with default or provided model.
+
+        Args:
+        model (xgb.XGBRegressor, optional): Predefined XGBoost model. Defaults to None.
+        """
         self.model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42)
         self.is_trained = False
         self.df = None
@@ -16,6 +32,16 @@ class XGBPipeline:
         self.evaluation = []
 
     def etl(self, data_path,debug):
+    	"""
+        Extracts, transforms, and loads data from the given path.
+
+        Args:
+        data_path (str): Path to the data file.
+        debug (bool, optional): Flag to print debug information. Defaults to False.
+
+        Raises:
+        Exception: If the file is not found or the structure is not as expected.
+        """
 
         index_names = ['id', 'time_cycles']
         setting_names = ['setting_1', 'setting_2', 'setting_3']
@@ -61,6 +87,16 @@ class XGBPipeline:
             print("ETL completed!")
     
     def train(self, data_path, debug):
+    	"""
+        Trains the XGBoost model using the data from the given path.
+
+        Args:
+        data_path (str): Path to the data file.
+        debug (bool, optional): Flag to print debug information. Defaults to False.
+
+        Raises:
+        Exception: If an error occurs during ETL or training.
+        """
         try:
             pipeline.etl(data_path, debug)
         except:
@@ -85,7 +121,19 @@ class XGBPipeline:
             print("Train completed!")
 
     def predict(self, data_path, debug):
+	"""
+        Makes predictions using the trained XGBoost model on data from the given path.
 
+        Args:
+        data_path (str): Path to the data file.
+        debug (bool, optional): Flag to print debug information. Defaults to False.
+
+        Returns:
+        tuple: The true and predicted RUL values.
+
+        Raises:
+        Exception: If the model is not trained or an error occurs during ETL or prediction.
+        """
         if not self.is_trained:
             raise Exception("Model is not trained yet!")
         try:
@@ -107,13 +155,34 @@ class XGBPipeline:
         return y_true,y_pred
     
     def model_evaluation(self,y_true,y_pred):
-        mask = y_true <= 30
-        filtered_y_true = y_true[mask]
-        filtered_y_pred = y_pred[mask]
+    	"""
+	Reports the Mean Absolute Error (MAE) for instances where the RUL is 30 cycles or less.
+
+	Args:
+	y_true (array-like): The true values.
+	y_pred (array-like): The predicted values.
+
+	Returns:
+	float: The calculated MAE.
+	"""
+        inputs = (y_pred <= 30, y_true <= 30)
+        idx = np.any(inputs, axis = 0)
+        filtered_y_pred = y_pred[idx]
+        filtered_y_true = y_true[idx]
         return mean_absolute_error(filtered_y_true, filtered_y_pred)
+
     
     def report(self, data_path="./dataset/split_folders/", debug = False):
+	"""
+        Reports the evaluation results for the model using cross-validation on multiple datasets.
 
+        Args:
+        data_path (str, optional): Path to the directory containing the datasets. Defaults to "./dataset/split_folders/".
+        debug (bool, optional): Flag to print debug information. Defaults to False.
+
+        Raises:
+        Exception: If an error occurs during training or evaluation.
+        """
         for pasta in range(0,10):
             for folder in range(0,10):
                 try:
@@ -129,6 +198,12 @@ class XGBPipeline:
                     raise Exception(f"It was not able to evaluate repeat_{pasta}/train_{folder}.csv")
 
     def save(self):
+    	"""
+        Saves the evaluation results to a file with a timestamp.
+
+        Raises:
+        Exception: If an error occurs during saving.
+        """
         time = str(datetime.now())[:19]
         file_path = f"./models/xgb_pipeline_{time}.pkl".replace(" ","_").replace(":","_")
         try:
