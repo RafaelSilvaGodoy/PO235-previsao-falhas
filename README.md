@@ -14,13 +14,15 @@ The dataset comprises multiple multivariate time series, each representing data 
 
 The exploratory data analysis can be found in [scripts/eda.ipynb](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/befa0470a9ce7e4372e8ef83c6f31e6e259f6ccd/scripts/eda.ipynb)
 
-**split_folders**
+#### split_folders
 
 Used for model search. Result of the 10-fold 10 times with different seeds in the dataset. In case the dataset changes, the split_dataset code can be run to recreate news splits.
 
 ## Models for RUL Prediction
 (1) Exponential Degradation
+
 (2) LSTM model
+
 (3) XGBoost model
 
 The trained models are saved in **trained_models** folder. For LSTM model, the predict code must import `from custom_objects import LSTMModel, smape`. 
