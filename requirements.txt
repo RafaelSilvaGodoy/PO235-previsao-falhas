@@ -1,0 +1,6 @@
+numpy
+pandas
+scikit-learn
+split-folders
+keras
+tensorflow 2.12.0

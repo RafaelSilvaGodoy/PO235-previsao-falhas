@@ -9,18 +9,18 @@ from json import dumps
 from datetime import datetime
 from keras import backend as k
 
+# Importing required modules from scikit-learn for data splitting and normalization
 #to split the train set in train and val sets using the id
 from sklearn.model_selection import GroupShuffleSplit		
-
 from sklearn.preprocessing import StandardScaler 		#to normalize data
 
-#for deep learning
+# Importing modules from Keras for building the deep learning model
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Activation, Dropout
 from keras.callbacks import History, EarlyStopping
 
 
-# training loss function
+# Custom loss function for training: Symmetric Mean Absolute Percentage Error (SMAPE)
 class smape(tf.keras.losses.Loss):
     def __init__(self, epsilon=1e-8, name="smape", **kwargs):
         super().__init__(name=name, **kwargs)
@@ -40,7 +40,7 @@ class smape(tf.keras.losses.Loss):
         base_config = super().get_config()
         return {**base_config, **config}
         
-# LSTM model
+# Class LSTM model
 class LSTMModel:
      
     def __init__(self, model=None):
@@ -54,6 +54,12 @@ class LSTMModel:
         self.window = None
         
     def build_model(self, window, sz):
+        """
+        Builds the LSTM model architecture with specified input shape.
+        Args:
+        window: int - The number of time steps to look back.
+        sz: int - The number of features.
+        """
         model = Sequential()
         model.add(LSTM(units=50, return_sequences=True, input_shape=(window, sz)))
         model.add(Dropout(0.2))
@@ -63,8 +69,14 @@ class LSTMModel:
         model.compile(loss=smape(), optimizer="adam", metrics=['mae'])
         self.model = model
        
-    # data labeling - generate column RUL
     def label_RUL(self, df):
+        """
+        Adds a Remaining Useful Life (RUL) column to the dataframe.
+        Args:
+        df: DataFrame - The input dataframe.
+        Returns:
+        DataFrame - The dataframe with the added RUL column.
+        """
         rul = pd.DataFrame(df.groupby('id')['time_cycles'].max()).reset_index()
         rul.columns = ['id', 'max']
         df = df.merge(rul, on=['id'], how='left')
@@ -72,8 +84,14 @@ class LSTMModel:
         df.drop('max', axis=1, inplace=True)
         return df
         
-    # Standard scalar normalization
     def normalize_data(self, df_train):
+        """
+        Normalizes the training data using StandardScaler.
+        Args:
+        df_train: DataFrame - The training dataframe.
+        Returns:
+        DataFrame - The normalized training dataframe.
+        """
         cols_normalize = df_train.columns.difference(['id','time_cycles','RUL'])
         scaler = StandardScaler()
         # train data normalization
@@ -90,10 +108,13 @@ class LSTMModel:
     # function to reshape the data to lstm
     def get_window(self, id_df, seq_length, seq_cols):
         """
-            function to prepare train data into (samples, time steps, features)
-            id_df = train dataframe
-            seq_length = look back period
-            seq_cols = feature columns
+        Prepares the data into (samples, time steps, features) format.
+        Args:
+        id_df: DataFrame - The input dataframe.
+        seq_length: int - The sequence length (look-back period).
+        seq_cols: list - The list of feature columns.
+        Returns:
+        np.array - The reshaped data array.
         """
         data_array = id_df[seq_cols].values
         num_elements = data_array.shape[0]
@@ -106,12 +127,26 @@ class LSTMModel:
 
     # function to reshape the label to lstm
     def gen_target(self, id_df, seq_length, label):
+        """
+        Prepares the labels for the LSTM model.
+        Args:
+        id_df: DataFrame - The input dataframe.
+        seq_length: int - The sequence length (look-back period).
+        label: str - The label column.
+        Returns:
+        np.array - The reshaped label array.
+        """
         data_array = id_df[label].values
         num_elements = data_array.shape[0]
         return data_array[seq_length-1:num_elements+1]
     
     # Data ETL
     def etl(self, train_path):
+        """
+        Extract, Transform, Load (ETL) process for the training data.
+        Args:
+        train_path: str - The path to the training data file.
+        """
         index_names = ['id', 'time_cycles']
         setting_names = ['setting_1', 'setting_2', 'setting_3']
         sensor_names = ['s_{}'.format(i+1) for i in range(0,21)]
@@ -137,6 +172,12 @@ class LSTMModel:
     
         
     def train(self, x_train, y_train):
+        """
+        Trains the LSTM model.
+        Args:
+        x_train: np.array - The training input data.
+        y_train: np.array - The training labels.
+        """
     	if self.is_trained:
     	    raise Exception("Model should not be a trained model!")
     	else:
@@ -146,6 +187,12 @@ class LSTMModel:
     	
     	
     def model_train(self, train_path, looking_back):
+        """
+        Executes the entire training pipeline from ETL to model training.
+        Args:
+        train_path: str - The path to the training data file.
+        looking_back: int - The sequence length (look-back period).
+        """
         try:
             self.etl(train_path)
         except:
@@ -167,6 +214,9 @@ class LSTMModel:
         self.train(x_train, y_train)
         
     def save(self):
+        """
+        Saves the trained model to a file.
+        """
         if not self.is_trained:
             raise Exception("Model is not trained yet!")
         else:
