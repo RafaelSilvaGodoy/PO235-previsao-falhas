@@ -3,4 +3,4 @@ pandas
 scikit-learn
 split-folders
 keras
-tensorflow
+tensorflow 2.12.0
