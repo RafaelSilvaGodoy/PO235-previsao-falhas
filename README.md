@@ -16,7 +16,7 @@ The exploratory data analysis can be found in [scripts/eda.ipynb](https://github
 
 The `train_set.csv` and `test_set.csv` are expected to be a csv file with following structure
 
-[image](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/5c81e24577febf5a0820c299c71244374b3b3a95/dataset/images/table.png)
+![Dataset Columns](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/5c81e24577febf5a0820c299c71244374b3b3a95/dataset/images/table.png)
 
 ### split_folders
 
