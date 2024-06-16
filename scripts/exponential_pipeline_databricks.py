@@ -21,6 +21,9 @@ class ExponentialPipeline:
                 self.results = []
                 self.threshold = None
                 self.exp_parameters_df = None
+                # for production
+                self.scaler = None
+                self.features = None
 
         def label_RUL(self, df):
                 """
@@ -36,6 +39,27 @@ class ExponentialPipeline:
                 df['RUL'] = df['max'] - df['time_cycles']
                 df.drop('max', axis=1, inplace=True)
                 return df
+                
+        def normalize_data(self, df):
+                """
+                Normalizes the training data using StandardScaler.
+                Args:
+                df: DataFrame - The training dataframe.
+                Returns:
+                DataFrame - The normalized training dataframe.
+                """
+                cols_normalize = df.columns.difference(['id','time_cycles','RUL'])
+                scaler = StandardScaler()
+                # train data normalization
+                scaler.fit(df[cols_normalize])
+                norm_df = pd.DataFrame(scaler.transform(df[cols_normalize]),
+                                     columns=cols_normalize,
+                                     index=df.index)
+                join_df = df[df.columns.difference(cols_normalize)].join(norm_df)
+                train_df = join_df.reindex(columns = df.columns)
+        
+                self.scaler = scaler # saving the scaler for production
+                return train_df
                 
         def pca_data(self, df, feats):
 		"""
