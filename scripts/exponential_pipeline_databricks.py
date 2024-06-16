@@ -62,19 +62,19 @@ class ExponentialPipeline:
                 return train_df
                 
         def pca_data(self, df, feats):
-		"""
-		Performs Principal Component Analysis (PCA) on the given dataframe and returns a dataframe with the top 3 principal components.
+                """
+                Performs Principal Component Analysis (PCA) on the given dataframe and returns a dataframe with the top 3 principal components.
 
-		This function reduces the dimensionality of the input features using PCA, retaining the top 3 principal components. 
-		It returns a new dataframe that includes these principal components along with the original 'RUL', 'id', and 'time_cycles' columns.
+                This function reduces the dimensionality of the input features using PCA, retaining the top 3 principal components. 
+                It returns a new dataframe that includes these principal components along with the original 'RUL', 'id', and 'time_cycles' columns.
 
-		Args:
-		df (pd.DataFrame): The input dataframe containing the data to be transformed.
-		feats (list of str): The list of feature column names to be included in the PCA transformation.
+                Args:
+                df (pd.DataFrame): The input dataframe containing the data to be transformed.
+                feats (list of str): The list of feature column names to be included in the PCA transformation.
 
-		Returns:
-		pd.DataFrame: A new dataframe containing the top 3 principal components along with the 'RUL', 'id', and 'time_cycles' columns.
-	    	"""
+                Returns:
+                pd.DataFrame: A new dataframe containing the top 3 principal components along with the 'RUL', 'id', and 'time_cycles' columns.
+                """
                 pca = PCA(n_components=3)
                 pca_data = pca.fit_transform(df[feats])
                 pca_df = pd.DataFrame(pca_data, columns = ['pc1', 'pc2', 'pc3'])
@@ -101,13 +101,13 @@ class ExponentialPipeline:
         
                       self.df = df
                       if debug:
-		            print("ETL completed!")
+                            print("ETL completed!")
                 except:
                       print("An ETL problem occurred!")
                     
                     
         def exp_degradation(self, parameters, cycle):
-		"""
+                """
 		Calculates the exponential degradation function.
 
 		Args:
@@ -125,7 +125,7 @@ class ExponentialPipeline:
                 return ht
 
         def residuals (self, parameters, data, y_observed, func):
-		"""
+                """
 		Calculates the residuals between observed and predicted values.
 
 		Args:
@@ -141,7 +141,7 @@ class ExponentialPipeline:
 
 
         def exp_parameters(self, df):
-		"""
+                """
 		Estimates the parameters of the exponential degradation model for each unique id in the dataframe.
 
 		Args:
@@ -186,35 +186,35 @@ class ExponentialPipeline:
 	        filtered_y_true = y_true[idx]
 	        return mean_absolute_error(filtered_y_true, filtered_y_pred)
 	        
-	def train(self, df, debug=False):
-		"""
+        def train(self, df, debug=False):
+                """
 		Trains the exponential degradation model by estimating the parameters for the training data.
 
 		Returns:
 		pd.DataFrame: DataFrame containing the estimated parameters 'phi', 'theta', and 'beta' for the training data.
 		"""
-		try:
+                try:
                       self.etl(df, debug)
-	        except:
-	              raise Exception("An error occurred during ETL!")
+                except:
+                      raise Exception("An error occurred during ETL!")
 	        
-	        feature_columns = self.df.columns.difference(['id','time_cycles','RUL']).tolist()
+                feature_columns = self.df.columns.difference(['id','time_cycles','RUL']).tolist()
                 self.features = feature_columns
                 
                 # data normalization
                 self.df = self.normalize_data(self.df)
 	        
 	        # PCA
-	        self.df = self.pca_data(self.df.reset_index(drop=True), self.features)
+                self.df = self.pca_data(self.df.reset_index(drop=True), self.features)
 	        
                 self.exp_parameters_df = self.exp_parameters(self.df)
                 self.threshold =  self.df.pc1[self.df.RUL == 0].mean()
                 self.is_trained = True
                 if debug:
-	             print("Train completed!")
+                     print("Train completed!")
 	             
-	def predict(self, df, debug=False):
-	        """
+        def predict(self, df, debug=False):
+                """
 		Predicts the Remaining Useful Life (RUL) using the exponential degradation model.
 
 		Args:
@@ -223,22 +223,26 @@ class ExponentialPipeline:
 		Returns:
 		list of float: The predicted RUL for each test instance.
 		"""
-		if not self.is_trained:
+                if not self.is_trained:
                         raise Exception("Model is not trained yet!")
                 try:
 	                self.etl(df, debug)
-	        except:
+                except:
 	                raise Exception("An error occurred during ETL!")
 	        
-	        # PCA
-	        self.df = self.pca_data(self.df.reset_index(drop=True), self.features)
+                # normalize
+                norm_df = pd.DataFrame(self.scaler.transform(self.df[self.features]),
+                                       columns=self.features,
+                                       index=self.df.index)
+                join_df = self.df[self.df.columns.difference(self.features)].join(norm_df)
+                self.df = join_df.reindex(columns = self.df.columns)
+                
+		# pca
+                self.df = self.pca_data(self.df.reset_index(drop=True), self.features)
+                x_test = self.df.drop(columns = ['RUL'])
+                y_true = self.df['RUL']
 	        
-	        X = self.df[feature_columns]
-		y_true = self.df['RUL']
-		
-		x_test = self.scaler.transform(X)
-	        
-	        phi_vals = self.exp_parameters_df.phi
+                phi_vals = self.exp_parameters_df.phi
                 theta_vals = self.exp_parameters_df.theta
                 beta_vals = self.exp_parameters_df.beta
                 
@@ -282,22 +286,22 @@ class ExponentialPipeline:
 	        """
 	        for pasta in range(0, 10):
 	                  for folder in range(0, 10):
-		               try:
-		                   path_train = data_path + f"repeat_{pasta}/train_{folder}.csv"
-		                   path_test = data_path + f"repeat_{pasta}/test_{folder}.csv"
+                               try:
+                                   path_train = data_path + f"repeat_{pasta}/train_{folder}.csv"
+                                   path_test = data_path + f"repeat_{pasta}/test_{folder}.csv"
 		
-		                   self.train(path_train, debug)
-		                   y_true, y_pred = self.predict(path_test, debug)
+                                   self.train(path_train, debug)
+                                   y_true, y_pred = self.predict(path_test, debug)
 		
-		                   self.evaluation.append(self.model_evaluation(y_true, y_pred))
-		                   print(f"repeat_{pasta}/train_{folder}.csv evaluation completed!")
-		               except:
-		                   raise Exception(f"It was not able to evaluate repeat_{pasta}/train_{folder}.csv")
+                                   self.evaluation.append(self.model_evaluation(y_true, y_pred))
+                                   print(f"repeat_{pasta}/train_{folder}.csv evaluation completed!")
+                               except:
+                                   raise Exception(f"It was not able to evaluate repeat_{pasta}/train_{folder}.csv")
 		                   
         def save(self):
-        	"""
-		Saves the results to a file.
-		"""
+                """
+                Saves the results to a file.
+                """
                 time = str(datetime.now())[:19]
                 file_path = f"./models/exponential_pipeline_{time}.pkl".replace(" ","_").replace(":","_")
                 try:

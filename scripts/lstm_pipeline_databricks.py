@@ -160,7 +160,7 @@ class LSTMModel:
         
             self.df = df
             if debug:
-		print("ETL completed!")
+               print("ETL completed!")
         except:
             print("An ETL problem occurred!")
     
@@ -174,10 +174,10 @@ class LSTMModel:
         """
         try:
             self.etl(df, debug)
-	except:
-	    raise Exception("An error occurred during ETL!")
+        except:
+            raise Exception("An error occurred during ETL!")
 	
-	feature_columns = self.df.columns.difference(['id','time_cycles','RUL']).tolist()
+        feature_columns = self.df.columns.difference(['id','time_cycles','RUL']).tolist()
         self.features = feature_columns
         self.window = looking_back
         
@@ -185,15 +185,15 @@ class LSTMModel:
         self.df = self.normalize_data(self.df)
         
         X = np.concatenate(list(list(self.get_window(self.df[self.df['id']==unit], self.window, self.features)) for unit in self.df['id'].unique()))
-        Y = np.concatenate(list(list(self.gen_target(self.df[self.df['id']==unit], self.window, "RUL")) for unit in new_train['id'].unique()))
+        Y = np.concatenate(list(list(self.gen_target(self.df[self.df['id']==unit], self.window, "RUL")) for unit in self.df['id'].unique()))
 	
 	# create model
         self.build_model(self.window, len(self.features))
 	
-        self.model.fit(X, Y, epochs=100, batch_size=32, verbose=0)
-    	self.is_trained = True
-    	if debug:
-	   print("Train completed!")
+        self.model.fit(X, Y, epochs=100, batch_size=32, verbose=1)
+        self.is_trained = True
+        if debug:
+            print("Train completed!")
     	
     def predict(self, df, debug=False):
         """
@@ -209,24 +209,32 @@ class LSTMModel:
 	Raises:
 	Exception: If the model is not trained or an error occurs during ETL or prediction.
 	"""
-	if not self.is_trained:
-	   raise Exception("Model is not trained yet!")
-	try:
-	   self.etl(df, debug)
-	except:
-	   raise Exception("An error occurred during ETL!")
+        if not self.is_trained:
+           raise Exception("Model is not trained yet!")
+        try:
+           self.etl(df, debug)
+        except:
+           raise Exception("An error occurred during ETL!")
 	   
-	X = np.concatenate(list(list(self.get_window(self.df[self.df['id']==unit], self.window, self.features)) for unit in self.df['id'].unique()))
-        y_true = np.concatenate(list(list(self.gen_target(self.df[self.df['id']==unit], self.window, "RUL")) for unit in new_train['id'].unique()))
+	# normalize
+        norm_df = pd.DataFrame(self.scaler.transform(self.df[self.features]),
+                               columns=self.features,
+                               index=self.df.index)
+        join_df = self.df[self.df.columns.difference(self.features)].join(norm_df)
+        self.df = join_df.reindex(columns = self.df.columns)
+	   
+        #X = np.concatenate(list(list(self.get_window(self.df[self.df['id']==unit], self.window, self.features)) for unit in self.df['id'].unique()))
+        #y_true = np.concatenate(list(list(self.gen_target(self.df[self.df['id']==unit], self.window, "RUL")) for unit in new_train['id'].unique()))
+        X = self.get_window(self.df, self.window, self.features)
+        y_true = self.gen_target(self.df, self.window, "RUL")
 	
-	X_ss = self.scaler.transform(X)
-	y_pred = self.model.predict(X_ss)
-	if debug:
-	   print("Prediction completed!")
-	return y_true, y_pred
+        y_pred = self.model.predict(X)
+        if debug:
+           print("Prediction completed!")
+        return y_true, y_pred
 	   
     def model_evaluation(self, y_true, y_pred):
-	"""
+        """
 	Reports the Mean Absolute Error (MAE) for instances where the RUL is 30 cycles or less.
 
 	Args:
@@ -236,36 +244,36 @@ class LSTMModel:
 	Returns:
 	float: The calculated MAE.
 	"""
-	inputs = (y_pred <= 30, y_true <= 30)
-	idx = np.any(inputs, axis=0)
-	filtered_y_pred = y_pred[idx]
-	filtered_y_true = y_true[idx]
-	return mean_absolute_error(filtered_y_true, filtered_y_pred)
+        inputs = (y_pred <= 30, y_true <= 30)
+        idx = np.any(inputs, axis=0)
+        filtered_y_pred = y_pred[idx]
+        filtered_y_true = y_true[idx]
+        return mean_absolute_error(filtered_y_true, filtered_y_pred)
 	
     def report(self, data_path="./dataset/split_folders/", looking_back = 5, debug=False):
-	"""
-	Reports the evaluation results for the model using cross-validation on multiple datasets.
+        """
+        Reports the evaluation results for the model using cross-validation on multiple datasets.
 
-	Args:
-	data_path (str, optional): Path to the directory containing the datasets. Defaults to "./dataset/split_folders/".
-	debug (bool, optional): Flag to print debug information. Defaults to False.
+        Args:
+        data_path (str, optional): Path to the directory containing the datasets. Defaults to "./dataset/split_folders/".
+        debug (bool, optional): Flag to print debug information. Defaults to False.
 
-	Raises:
-	Exception: If an error occurs during training or evaluation.
-	"""
-	for pasta in range(0, 10):
-	    for folder in range(0, 10):
-		try:
-		    path_train = data_path + f"repeat_{pasta}/train_{folder}.csv"
-		    path_test = data_path + f"repeat_{pasta}/test_{folder}.csv"
+        Raises:
+        Exception: If an error occurs during training or evaluation.
+        """
+        for pasta in range(0, 10):
+            for folder in range(0, 10):
+                try:
+                    path_train = data_path + f"repeat_{pasta}/train_{folder}.csv"
+                    path_test = data_path + f"repeat_{pasta}/test_{folder}.csv"
 		
-		    self.train(path_train, looking_back, debug)
-		    y_true, y_pred = self.predict(path_test, debug)
+                    self.train(path_train, looking_back, debug)
+                    y_true, y_pred = self.predict(path_test, debug)
 		
-		    self.evaluation.append(self.model_evaluation(y_true, y_pred))
-		    print(f"repeat_{pasta}/train_{folder}.csv evaluation completed!")
-		 except:
-		    raise Exception(f"It was not able to evaluate repeat_{pasta}/train_{folder}.csv")
+                    self.evaluation.append(self.model_evaluation(y_true, y_pred))
+                    print(f"repeat_{pasta}/train_{folder}.csv evaluation completed!")
+                except:
+                    raise Exception(f"It was not able to evaluate repeat_{pasta}/train_{folder}.csv")
         
     def save(self):
         """
@@ -278,7 +286,7 @@ class LSTMModel:
             file_path = f"./trained_models/lstm_pipeline_w5_v2_{time}.pkl".replace(" ","_").replace(":","_")
             try:
                 with open(file_path, 'wb') as file:
-                    pickle.dump(self, file)
+                    pickle.dump(self.evaluation, file)
                     print(f"ModelPipeline saved to {file_path}")
             except:
                 print("An error occured and the model couldn't be saved!")
