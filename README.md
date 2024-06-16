@@ -37,6 +37,8 @@ The model search is performed with 10 repetitions of the 10-fold with different 
 To validation, run `python scripts/report.py`. The report is saved in `Validation_Report.pdf`
 
 ## Project Production
+The files `{model_name}_pipeline_databricks.py` in scripts folder are use to train the models and make prediction using the `train_set.csv` and `test_set.csv`. 
+In a databricks workspace, a code to run the training and the predictions can be used to automate to create preditive maintenance interface. 
 
 ## Requirements
 
