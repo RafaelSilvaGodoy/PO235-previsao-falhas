@@ -208,7 +208,7 @@ class ExponentialPipeline:
 	        self.df = self.pca_data(self.df.reset_index(drop=True), self.features)
 	        
                 self.exp_parameters_df = self.exp_parameters(self.df)
-                self.threshold =  self.df_train.pc1[self.df_train.RUL == 0].mean()
+                self.threshold =  self.df.pc1[self.df.RUL == 0].mean()
                 self.is_trained = True
                 if debug:
 	             print("Train completed!")
