@@ -14,7 +14,11 @@ The dataset comprises multiple multivariate time series, each representing data 
 
 The exploratory data analysis can be found in [scripts/eda.ipynb](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/befa0470a9ce7e4372e8ef83c6f31e6e259f6ccd/scripts/eda.ipynb)
 
-#### split_folders
+The `train_set.csv` and `test_set.csv` are expected to be a csv file with following structure
+
+![Dataset Columns](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/5c81e24577febf5a0820c299c71244374b3b3a95/dataset/images/table.png)
+
+### split_folders
 
 Used for model search. Result of the 10-fold 10 times with different seeds in the dataset. In case the dataset changes, the split_dataset code can be run to recreate news splits.
 
@@ -25,14 +29,18 @@ Used for model search. Result of the 10-fold 10 times with different seeds in th
 
 (3) XGBoost model
 
-The trained models are saved in **trained_models** folder. For LSTM model, the predict code must import `from custom_objects import LSTMModel, smape`. 
+All codes are documented for reproduction.
 
 ## Model Search
 The model search is performed with 10 repetitions of the 10-fold with different seeds (the code to generate this can be found in [scripts/split_dataset.ipynb](https://github.com/RafaelSilvaGodoy/PO235-previsao-falhas/blob/cea7f798dd38e052d2a0b529b9de7541a2d475b3/scripts/split_dataset.ipynb)). For each model pipeline, run `python scripts/{model_name}.py`. The results are saved in **models** folder.
 
 To validation, run `python scripts/report.py`. The report is saved in `Validation_Report.pdf`
 
-### Requirements
+## Project Production
+The files `{model_name}_pipeline_databricks.py` in scripts folder are use to train the models and make prediction using the `train_set.csv` and `test_set.csv`. 
+In a databricks workspace, a code to run the training and the predictions can be used to automate to create preditive maintenance interface. 
+
+## Requirements
 
 To run this project, you will need to have installed on your machine:
 
