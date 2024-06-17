@@ -94,14 +94,13 @@ class LSTMModel:
         Returns:
         DataFrame - The normalized training dataframe.
         """
-        cols_normalize = df.columns.difference(['id','time_cycles','RUL'])
         scaler = StandardScaler()
         # train data normalization
-        scaler.fit(df[cols_normalize])
-        norm_df = pd.DataFrame(scaler.transform(df[cols_normalize]),
-                                     columns=cols_normalize,
+        scaler.fit(df[self.features])
+        norm_df = pd.DataFrame(scaler.transform(df[self.features]),
+                                     columns=self.features,
                                      index=df.index)
-        join_df = df[df.columns.difference(cols_normalize)].join(norm_df)
+        join_df = df[df.columns.difference(self.features)].join(norm_df)
         train_df = join_df.reindex(columns = df.columns)
         
         self.scaler = scaler # saving the scaler for production
